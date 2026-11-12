@@ -152,6 +152,16 @@ class Database {
     return this.models.mediaItemShare
   }
 
+  /** @type {typeof import('./models/DuplicateFinding')} */
+  get duplicateFindingModel() {
+    return this.models.duplicateFinding
+  }
+
+  /** @type {typeof import('./models/FileHash')} */
+  get fileHashModel() {
+    return this.models.fileHash
+  }
+
   /** @type {typeof import('./models/Device')} */
   get deviceModel() {
     return this.models.device
@@ -340,6 +350,8 @@ class Database {
     require('./models/Setting').init(this.sequelize)
     require('./models/CustomMetadataProvider').init(this.sequelize)
     require('./models/MediaItemShare').init(this.sequelize)
+    require('./models/DuplicateFinding').init(this.sequelize)
+    require('./models/FileHash').init(this.sequelize)
 
     return this.sequelize.sync({ force, alter: false })
   }

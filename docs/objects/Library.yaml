@@ -67,6 +67,10 @@ components:
           description: The region to use when searching for podcasts.
           type: string
           example: 'us'
+        enableDuplicateDetection:
+          description: Book libraries only. Whether to run duplicate detection automatically after library scans and item changes. Admins can always start a duplicate audit manually.
+          type: boolean
+          example: false
     library:
       description: A library object which includes either books or podcasts.
       type: object

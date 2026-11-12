@@ -14,6 +14,7 @@ const RssFeedManager = require('../managers/RssFeedManager')
 const { fileUploadParser, requireUploadPermission } = require('../utils/fileUploadMiddleware')
 
 const LibraryController = require('../controllers/LibraryController')
+const DuplicateController = require('../controllers/DuplicateController')
 const UserController = require('../controllers/UserController')
 const CollectionController = require('../controllers/CollectionController')
 const PlaylistController = require('../controllers/PlaylistController')
@@ -96,6 +97,13 @@ class ApiRouter {
     this.router.post('/libraries/:id/remove-metadata', LibraryController.middleware.bind(this), LibraryController.removeAllMetadataFiles.bind(this))
     this.router.get('/libraries/:id/podcast-titles', LibraryController.middleware.bind(this), LibraryController.getPodcastTitles.bind(this))
     this.router.get('/libraries/:id/download', LibraryController.middleware.bind(this), LibraryController.downloadMultiple.bind(this))
+    this.router.get('/libraries/:id/duplicates', LibraryController.middleware.bind(this), DuplicateController.middleware.bind(this), DuplicateController.findAll.bind(DuplicateController))
+    this.router.get('/libraries/:id/duplicates/audit', LibraryController.middleware.bind(this), DuplicateController.middleware.bind(this), DuplicateController.getAuditStatus.bind(DuplicateController))
+    this.router.post('/libraries/:id/duplicates/audit', LibraryController.middleware.bind(this), DuplicateController.middleware.bind(this), DuplicateController.startAudit.bind(DuplicateController))
+    this.router.post('/libraries/:id/duplicates/audit/cancel', LibraryController.middleware.bind(this), DuplicateController.middleware.bind(this), DuplicateController.cancelAudit.bind(DuplicateController))
+    this.router.get('/libraries/:id/duplicates/:findingId', LibraryController.middleware.bind(this), DuplicateController.middleware.bind(this), DuplicateController.findOne.bind(DuplicateController))
+    this.router.post('/libraries/:id/duplicates/:findingId/dismiss', LibraryController.middleware.bind(this), DuplicateController.middleware.bind(this), DuplicateController.dismiss.bind(DuplicateController))
+    this.router.post('/libraries/:id/duplicates/:findingId/reopen', LibraryController.middleware.bind(this), DuplicateController.middleware.bind(this), DuplicateController.reopen.bind(DuplicateController))
 
     //
     // Item Routes

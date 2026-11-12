@@ -35,6 +35,18 @@ paths:
     $ref: './controllers/LibraryController.yaml#/paths/~1api~1libraries~1{id}'
   /api/libraries/{id}/authors:
     $ref: './controllers/LibraryController.yaml#/paths/~1api~1libraries~1{id}~1authors'
+  /api/libraries/{id}/duplicates:
+    $ref: './controllers/DuplicateController.yaml#/paths/~1api~1libraries~1{id}~1duplicates'
+  /api/libraries/{id}/duplicates/audit:
+    $ref: './controllers/DuplicateController.yaml#/paths/~1api~1libraries~1{id}~1duplicates~1audit'
+  /api/libraries/{id}/duplicates/audit/cancel:
+    $ref: './controllers/DuplicateController.yaml#/paths/~1api~1libraries~1{id}~1duplicates~1audit~1cancel'
+  /api/libraries/{id}/duplicates/{findingId}:
+    $ref: './controllers/DuplicateController.yaml#/paths/~1api~1libraries~1{id}~1duplicates~1{findingId}'
+  /api/libraries/{id}/duplicates/{findingId}/dismiss:
+    $ref: './controllers/DuplicateController.yaml#/paths/~1api~1libraries~1{id}~1duplicates~1{findingId}~1dismiss'
+  /api/libraries/{id}/duplicates/{findingId}/reopen:
+    $ref: './controllers/DuplicateController.yaml#/paths/~1api~1libraries~1{id}~1duplicates~1{findingId}~1reopen'
   /api/libraries/{id}/items:
     $ref: './controllers/LibraryController.yaml#/paths/~1api~1libraries~1{id}~1items'
   /api/libraries/{id}/issues:
@@ -82,6 +94,8 @@ tags:
     description: Author endpoints
   - name: Libraries
     description: Library endpoints
+  - name: Duplicates
+    description: Duplicate detection endpoints
   - name: Series
     description: Series endpoints
   - name: Email

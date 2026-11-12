@@ -84,6 +84,10 @@ class ApiCacheManager {
         Logger.debug(`[ApiCacheManager] Skipping cache for random sort`)
         return next()
       }
+      // Duplicate audit status lives in memory and changes without database writes
+      if (/^\/libraries\/[^/]+\/duplicates(\/|\?|$)/.test(req.url)) {
+        return next()
+      }
 
       const key = { user: req.user.username, url: req.url }
       const stringifiedKey = JSON.stringify(key)

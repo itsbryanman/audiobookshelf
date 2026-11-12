@@ -1,0 +1,420 @@
+components:
+  schemas:
+    duplicateClassification:
+      type: string
+      description: |
+        How strongly two library items look like duplicates.
+        `exact`: every included audio file has a byte-identical counterpart (SHA-256, compared as a multiset).
+        `likely_same_recording`: same work and recording evidence (narrator or ASIN) with matching runtime and nothing contradicting it.
+        `possible_duplicate`: strongly overlapping metadata but not enough evidence that the audio is the same recording.
+        `shared_files`: both library item records point at the same physical audio files. This is a library record problem, not two copies.
+      enum: ['exact', 'likely_same_recording', 'possible_duplicate', 'shared_files']
+      example: 'exact'
+    duplicateStatus:
+      type: string
+      description: Review status of a finding.
+      enum: ['open', 'dismissed']
+      example: 'open'
+    duplicateEvidence:
+      type: object
+      description: One piece of evidence used to classify a pair.
+      properties:
+        key:
+          type: string
+          description: What was compared, e.g. `content_hash`, `asin`, `isbn`, `title`, `subtitle`, `authors`, `series_sequence`, `narrators`, `abridged`, `language`, `duration`, `published_year`, `files`, `shared_files`, `duplicate_file_records`.
+          example: 'duration'
+        outcome:
+          type: string
+          enum: ['match', 'partial', 'mismatch', 'unknown', 'info']
+          example: 'match'
+        details:
+          type: object
+          description: Extra values for this comparison, e.g. both durations and the difference in seconds.
+          additionalProperties: true
+          example:
+            itemA: 36000
+            itemB: 36012
+            difference: 12
+            sameRecordingTolerance: 51
+    duplicateItemSummary:
+      type: object
+      description: Details of one library item in a finding.
+      properties:
+        id:
+          $ref: '../objects/LibraryItem.yaml#/components/schemas/libraryItemId'
+        title:
+          type: string
+        subtitle:
+          type: string
+          nullable: true
+        authorName:
+          type: string
+        narrators:
+          type: array
+          items:
+            type: string
+        publishedYear:
+          type: string
+          nullable: true
+        asin:
+          type: string
+          nullable: true
+        isbn:
+          type: string
+          nullable: true
+        language:
+          type: string
+          nullable: true
+        abridged:
+          type: boolean
+        duration:
+          type: number
+          description: Duration in seconds.
+        size:
+          type: integer
+          description: Total size of the library item in bytes.
+        audioFilesSize:
+          type: integer
+          description: Total size of the included audio files in bytes.
+        numAudioFiles:
+          type: integer
+        formats:
+          type: array
+          items:
+            type: string
+          example: ['m4b']
+        codecs:
+          type: array
+          items:
+            type: string
+        hasCover:
+          type: boolean
+        path:
+          type: string
+        relPath:
+          type: string
+        isMissing:
+          type: boolean
+        isInvalid:
+          type: boolean
+        addedAt:
+          type: integer
+          description: Time the item was added, in ms since POSIX epoch.
+    duplicateFinding:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        libraryId:
+          $ref: '../objects/Library.yaml#/components/schemas/libraryId'
+        classification:
+          $ref: '#/components/schemas/duplicateClassification'
+        status:
+          $ref: '#/components/schemas/duplicateStatus'
+        statusReason:
+          type: string
+          description: Why the status last changed, e.g. `detected`, `dismissed`, `reopened_manually`, `reopened_stronger_classification`, `reopened_audio_changed`.
+        evidence:
+          type: array
+          items:
+            $ref: '#/components/schemas/duplicateEvidence'
+        limitations:
+          type: array
+          description: Evidence keys that kept the pair from a stronger classification.
+          items:
+            type: string
+          example: ['recording_identity']
+        algorithmVersion:
+          type: integer
+        firstDetectedAt:
+          type: integer
+          nullable: true
+        lastVerifiedAt:
+          type: integer
+          nullable: true
+        dismissedAt:
+          type: integer
+          nullable: true
+        dismissedByUserId:
+          type: string
+          nullable: true
+        libraryItemAId:
+          $ref: '../objects/LibraryItem.yaml#/components/schemas/libraryItemId'
+        libraryItemBId:
+          $ref: '../objects/LibraryItem.yaml#/components/schemas/libraryItemId'
+        libraryItemA:
+          $ref: '#/components/schemas/duplicateItemSummary'
+        libraryItemB:
+          $ref: '#/components/schemas/duplicateItemSummary'
+    duplicateAuditStatus:
+      type: object
+      properties:
+        running:
+          type: boolean
+        mode:
+          type: string
+          nullable: true
+          enum: ['full', 'incremental', null]
+        trigger:
+          type: string
+          nullable: true
+        startedAt:
+          type: integer
+          nullable: true
+        progress:
+          type: object
+          nullable: true
+          properties:
+            phase:
+              type: string
+              enum: ['loading', 'comparing', 'saving']
+            itemsLoaded:
+              type: integer
+            candidatePairs:
+              type: integer
+            pairsCompared:
+              type: integer
+            filesHashed:
+              type: integer
+            bytesHashed:
+              type: integer
+        queued:
+          type: object
+          nullable: true
+          description: A run waiting for the active run to finish.
+        scheduled:
+          type: boolean
+          description: Whether a delayed run is scheduled.
+        lastRun:
+          type: object
+          nullable: true
+          description: Summary of the last run since server start, including result (`completed`, `canceled`, `deferred`, `failed`), timing, candidate counts, classifications, finding changes and hashing statistics.
+          additionalProperties: true
+  parameters:
+    libraryId:
+      name: id
+      in: path
+      description: The ID of the library.
+      required: true
+      schema:
+        $ref: '../objects/Library.yaml#/components/schemas/libraryId'
+    findingId:
+      name: findingId
+      in: path
+      description: The ID of the duplicate finding.
+      required: true
+      schema:
+        type: string
+        format: uuid
+  responses:
+    finding200:
+      description: Duplicate finding.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/duplicateFinding'
+    duplicates400:
+      description: Invalid request, or the library is not a book library.
+      content:
+        text/html:
+          schema:
+            type: string
+            example: Duplicate detection is only available for book libraries
+    duplicates403:
+      description: The user is not an admin, cannot access the library, or cannot access one of the items in the finding.
+    finding404:
+      description: Finding not found in this library.
+paths:
+  /api/libraries/{id}/duplicates:
+    parameters:
+      - $ref: '#/components/parameters/libraryId'
+    get:
+      operationId: getLibraryDuplicates
+      summary: List duplicate findings in a library.
+      description: Admin only. Lists duplicate findings for a book library, strongest classification first, then oldest first. Findings that include an item the user cannot access are left out. Nothing is ever deleted, merged or hidden by duplicate detection.
+      tags:
+        - Duplicates
+      parameters:
+        - in: query
+          name: status
+          description: Review status to return.
+          schema:
+            type: string
+            enum: ['open', 'dismissed', 'all']
+            default: 'open'
+        - in: query
+          name: classification
+          description: Comma separated list of classifications to return.
+          schema:
+            type: string
+          example: 'exact,likely_same_recording'
+        - in: query
+          name: limit
+          description: Page size (max 500).
+          schema:
+            type: integer
+            default: 50
+        - in: query
+          name: page
+          description: Zero indexed page number.
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: getLibraryDuplicates OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  findings:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/duplicateFinding'
+                  total:
+                    type: integer
+                  limit:
+                    type: integer
+                  page:
+                    type: integer
+                  counts:
+                    type: object
+                    description: Number of findings per status and classification.
+                    example:
+                      open:
+                        exact: 2
+                        possible_duplicate: 5
+                      dismissed:
+                        possible_duplicate: 1
+        '400':
+          $ref: '#/components/responses/duplicates400'
+        '403':
+          $ref: '#/components/responses/duplicates403'
+  /api/libraries/{id}/duplicates/audit:
+    parameters:
+      - $ref: '#/components/parameters/libraryId'
+    get:
+      operationId: getLibraryDuplicateAudit
+      summary: Get duplicate detection status.
+      description: Admin only. Returns the active, queued and last duplicate detection run for a library.
+      tags:
+        - Duplicates
+      responses:
+        '200':
+          description: getLibraryDuplicateAudit OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/duplicateAuditStatus'
+        '403':
+          $ref: '#/components/responses/duplicates403'
+    post:
+      operationId: startLibraryDuplicateAudit
+      summary: Start duplicate detection.
+      description: Admin only. Starts a duplicate detection run, or queues it if one is already running for the library. A run requested during a library scan waits until the scan has finished. A `full` audit checks every candidate file on disk; `incremental` reuses cached hashes for files whose recorded size and modification time are unchanged.
+      tags:
+        - Duplicates
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                mode:
+                  type: string
+                  enum: ['full', 'incremental']
+                  default: 'full'
+      responses:
+        '200':
+          description: startLibraryDuplicateAudit OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - type: object
+                    properties:
+                      status:
+                        type: string
+                        enum: ['started', 'queued']
+                  - $ref: '#/components/schemas/duplicateAuditStatus'
+        '400':
+          $ref: '#/components/responses/duplicates400'
+        '403':
+          $ref: '#/components/responses/duplicates403'
+  /api/libraries/{id}/duplicates/audit/cancel:
+    parameters:
+      - $ref: '#/components/parameters/libraryId'
+    post:
+      operationId: cancelLibraryDuplicateAudit
+      summary: Cancel duplicate detection.
+      description: Admin only. Cancels the active run and any queued or scheduled run for the library. Results of a canceled run are not saved.
+      tags:
+        - Duplicates
+      responses:
+        '200':
+          description: cancelLibraryDuplicateAudit OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  canceled:
+                    type: boolean
+        '403':
+          $ref: '#/components/responses/duplicates403'
+  /api/libraries/{id}/duplicates/{findingId}:
+    parameters:
+      - $ref: '#/components/parameters/libraryId'
+      - $ref: '#/components/parameters/findingId'
+    get:
+      operationId: getLibraryDuplicateFinding
+      summary: Get a duplicate finding.
+      description: Admin only. Returns a finding with its evidence and both items, including their included audio files (paths relative to the item).
+      tags:
+        - Duplicates
+      responses:
+        '200':
+          $ref: '#/components/responses/finding200'
+        '400':
+          $ref: '#/components/responses/duplicates400'
+        '403':
+          $ref: '#/components/responses/duplicates403'
+        '404':
+          $ref: '#/components/responses/finding404'
+  /api/libraries/{id}/duplicates/{findingId}/dismiss:
+    parameters:
+      - $ref: '#/components/parameters/libraryId'
+      - $ref: '#/components/parameters/findingId'
+    post:
+      operationId: dismissLibraryDuplicateFinding
+      summary: Dismiss a duplicate finding.
+      description: Admin only. Marks a finding as not a duplicate. Later runs keep it dismissed unless the classification becomes stronger or the audio of either item changes.
+      tags:
+        - Duplicates
+      responses:
+        '200':
+          $ref: '#/components/responses/finding200'
+        '403':
+          $ref: '#/components/responses/duplicates403'
+        '404':
+          $ref: '#/components/responses/finding404'
+  /api/libraries/{id}/duplicates/{findingId}/reopen:
+    parameters:
+      - $ref: '#/components/parameters/libraryId'
+      - $ref: '#/components/parameters/findingId'
+    post:
+      operationId: reopenLibraryDuplicateFinding
+      summary: Reopen a dismissed duplicate finding.
+      description: Admin only.
+      tags:
+        - Duplicates
+      responses:
+        '200':
+          $ref: '#/components/responses/finding200'
+        '403':
+          $ref: '#/components/responses/duplicates403'
+        '404':
+          $ref: '#/components/responses/finding404'

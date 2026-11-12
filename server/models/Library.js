@@ -14,6 +14,7 @@ const Logger = require('../Logger')
  * @property {string[]} metadataPrecedence
  * @property {number} markAsFinishedTimeRemaining Time remaining in seconds to mark as finished. (defaults to 10s)
  * @property {number} markAsFinishedPercentComplete Percent complete to mark as finished (0-100). If this is set it will be used over markAsFinishedTimeRemaining.
+ * @property {boolean} enableDuplicateDetection Book libraries only. Run duplicate detection automatically after scans and item changes
  */
 
 class Library extends Model {
@@ -76,7 +77,8 @@ class Library extends Model {
         onlyShowLaterBooksInContinueSeries: false,
         metadataPrecedence: this.defaultMetadataPrecedence,
         markAsFinishedPercentComplete: null,
-        markAsFinishedTimeRemaining: 10
+        markAsFinishedTimeRemaining: 10,
+        enableDuplicateDetection: false
       }
     }
   }

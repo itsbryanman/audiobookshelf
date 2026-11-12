@@ -12,6 +12,7 @@ const { reqSupportsWebp, clampPositiveInt } = require('../utils/index')
 const { ScanResult, AudioMimeType } = require('../utils/constants')
 const { getAudioMimeTypeFromExtname, encodeUriPath } = require('../utils/fileUtils')
 const LibraryItemScanner = require('../scanner/LibraryItemScanner')
+const DuplicateDetectionManager = require('../managers/DuplicateDetectionManager')
 const AudioFileScanner = require('../scanner/AudioFileScanner')
 const Scanner = require('../scanner/Scanner')
 
@@ -278,6 +279,7 @@ class LibraryItemController {
 
       Logger.debug(`[LibraryItemController] Updated library item media ${req.libraryItem.media.title}`)
       SocketAuthority.libraryItemEmitter('item_updated', req.libraryItem)
+      DuplicateDetectionManager.notifyLibraryChangedById(req.libraryItem.libraryId, 'item-update')
     }
     res.json({
       updated: hasUpdates,
@@ -714,6 +716,7 @@ class LibraryItemController {
 
         Logger.debug(`[LibraryItemController] Updated library item media "${libraryItem.media.title}"`)
         SocketAuthority.libraryItemEmitter('item_updated', libraryItem)
+        DuplicateDetectionManager.notifyLibraryChangedById(libraryItem.libraryId, 'item-update')
         itemsUpdated++
       }
     }
@@ -870,6 +873,9 @@ class LibraryItemController {
 
     const result = await LibraryItemScanner.scanLibraryItem(req.libraryItem.id)
     await Database.resetLibraryIssuesFilterData(req.libraryItem.libraryId)
+    if (result !== ScanResult.NOTHING && result !== ScanResult.UPTODATE) {
+      DuplicateDetectionManager.notifyLibraryChangedById(req.libraryItem.libraryId, 'item-rescan')
+    }
     res.json({
       result: Object.keys(ScanResult).find((key) => ScanResult[key] == result)
     })

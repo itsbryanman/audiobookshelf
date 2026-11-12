@@ -14,6 +14,7 @@ const LibraryItemScanner = require('./LibraryItemScanner')
 const LibraryScan = require('./LibraryScan')
 const LibraryItemScanData = require('./LibraryItemScanData')
 const Task = require('../objects/Task')
+const DuplicateDetectionManager = require('../managers/DuplicateDetectionManager')
 
 class LibraryScanner {
   constructor() {
@@ -71,6 +72,9 @@ class LibraryScanner {
     libraryScan.verbose = true
     this.librariesScanning.push(libraryScan.libraryId)
 
+    // A duplicate detection run would read items while the scan changes them; it is restarted after the scan
+    DuplicateDetectionManager.deferForLibraryScan(library.id)
+
     const taskData = {
       libraryId: library.id,
       libraryName: library.name,
@@ -85,9 +89,11 @@ class LibraryScanner {
 
     Logger.info(`[LibraryScanner] Starting${forceRescan ? ' (forced)' : ''} library scan ${libraryScan.id} for ${libraryScan.libraryName}`)
 
+    let scanCompleted = false
     try {
       const canceled = await this.scanLibrary(libraryScan, forceRescan)
       libraryScan.setComplete()
+      scanCompleted = !canceled
 
       Logger.info(`[LibraryScanner] Library scan "${libraryScan.id}" ${canceled ? 'canceled after' : 'completed in'} ${libraryScan.elapsedTimestamp} | ${libraryScan.resultStats}`)
 
@@ -131,6 +137,11 @@ class LibraryScanner {
     this.librariesScanning = this.librariesScanning.filter((lid) => lid !== library.id)
 
     TaskManager.taskFinished(task)
+
+    // Only completed scans trigger duplicate detection; canceled and failed scans do not
+    if (scanCompleted) {
+      DuplicateDetectionManager.notifyLibraryChanged(library, 'library-scan')
+    }
 
     libraryScan.saveLog()
   }
@@ -442,6 +453,7 @@ class LibraryScanner {
       // If something was updated then reset numIssues filter data for library
       if (resetFilterData) {
         await Database.resetLibraryIssuesFilterData(libraryId)
+        DuplicateDetectionManager.notifyLibraryChanged(library, 'watcher')
       }
     }
 

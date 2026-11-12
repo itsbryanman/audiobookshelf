@@ -40,6 +40,7 @@ const ApiCacheManager = require('./managers/ApiCacheManager')
 const BinaryManager = require('./managers/BinaryManager')
 const ShareManager = require('./managers/ShareManager')
 const LibraryScanner = require('./scanner/LibraryScanner')
+const DuplicateDetectionManager = require('./managers/DuplicateDetectionManager')
 
 //Import the main Passport and Express-Session library
 const passport = require('passport')
@@ -554,6 +555,7 @@ class Server {
     Logger.info('=== Stopping Server ===')
     Watcher.close()
     Logger.info('[Server] Watcher Closed')
+    await DuplicateDetectionManager.stop()
     await SocketAuthority.close()
     Logger.info('[Server] Closing HTTP Server')
     await new Promise((resolve) => this.server.close(resolve))

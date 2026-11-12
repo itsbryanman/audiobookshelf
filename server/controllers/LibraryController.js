@@ -19,6 +19,7 @@ const Scanner = require('../scanner/Scanner')
 const Database = require('../Database')
 const Watcher = require('../Watcher')
 const RssFeedManager = require('../managers/RssFeedManager')
+const DuplicateDetectionManager = require('../managers/DuplicateDetectionManager')
 
 const libraryFilters = require('../utils/queries/libraryFilters')
 const libraryItemsPodcastFilters = require('../utils/queries/libraryItemsPodcastFilters')
@@ -530,6 +531,7 @@ class LibraryController {
 
     // Remove library watcher
     Watcher.removeLibrary(req.library)
+    DuplicateDetectionManager.cancel(req.library.id)
 
     // Remove collections for library
     const numCollectionsRemoved = await Database.collectionModel.removeAllForLibrary(req.library.id)
